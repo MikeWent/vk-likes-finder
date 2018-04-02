@@ -99,3 +99,8 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# user data
+access_token.txt
+*-subscriptions.txt
+*-liked.txt
