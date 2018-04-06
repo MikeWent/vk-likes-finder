@@ -7,7 +7,7 @@ from string import Template
 from sys import argv
 
 class VKAPI(object):
-    def __init__(self, access_token, api_version=5.73):
+    def __init__(self, access_token, api_version="5.73"):
         self.api_url = "https://api.vk.com/method/{}"
         self.required_params = {
             "access_token": access_token,
@@ -24,7 +24,7 @@ class VKAPI(object):
         try:
             return json_from_server["response"]
         except KeyError:
-            print("=== ERROR ===")
+            print("\n=== ERROR ===")
             print("METHOD:", method)
             print("PARAMS:", str(request_params))
             print("RESPONSE:", r.text)
@@ -43,26 +43,35 @@ def update_status_line():
         checked_public_pages,
         total_public_pages
     )
-    print(status_line+" "*10, end="\r")
+    print(status_line, end="\r")
 
+def validate_credentials():
+    global vk
+    print("Trying to auth with access token... ", end="")
+    vk = VKAPI(access_token)
+    test_call = vk.call("account.getProfileInfo")
+    if test_call:
+        print("[OK]")
+        return True
+    else:
+        print("[FAILED]")
+        exit()
 try:
+    global access_token
     print("Trying to get access token from 'access_token.txt'... ", end="")
     with open("access_token.txt", "r") as f:
         access_token = f.read()
         access_token = access_token.rstrip()
     print("[OK]")
-    vk = VKAPI(access_token)
-    test_call = vk.call("account.getProfileInfo")
-    if test_call:
-        print("Authentication via access token [OK]")
-
+    random_delay()
+    validate_credentials()
 except FileNotFoundError:
     print("[FAILED]")
     print("Using primary auth method to get access token")
     print("Enter your credentials below to continue (doesn't work with 2FA enabled)")
     login = input("> Login (email/phone): ")
     password = input("> Password: ")
-    print("Trying to auth with provided credentials... ", end="")
+    print("Trying to get token with provided credentials... ", end="")
     # VK Android app
     auth_test = requests.get("https://oauth.vk.com/token", params={
         "grant_type": "password",
@@ -74,15 +83,11 @@ except FileNotFoundError:
     })
     try:
         access_token = auth_test.json()["access_token"]
+        print("[OK]")
     except:
         print("[FAILED]")
-        print("Some error occured. Details:")
-        print(auth_test.text)
         exit()
-    vk = VKAPI(access_token)
-    test_call = vk.call("account.getProfileInfo")
-    if test_call:
-        print("[OK]")
+    if validate_credentials():
         print("Saving access token to 'access_token.txt'... ", end="")
         with open("access_token.txt", "w") as f:
             f.write(access_token)
@@ -92,7 +97,7 @@ try:
     user_link = argv[1]
 except IndexError:
     try:
-        user_link = input("> Target: ")
+        user_link = input("> Enter target id (durov, 123456): ")
     except KeyboardInterrupt:
         exit()
 
@@ -123,7 +128,10 @@ if not subscriptions_loaded_from_cache:
     user_subscriptions = vk.call("execute", code=code_to_execute)
     if user_subscriptions:
         print("[OK]")
-
+    else:
+        print("[FAILED]")
+        print("Server response:", str(user_subscriptions))
+        exit()
     print("Dumping subscriptions to file {}... ".format(user_subscriptions_filename), end="")
     with open(user_subscriptions_filename, "w") as f:
         json.dump(user_subscriptions, f, indent=4)
