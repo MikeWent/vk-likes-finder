@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import requests
-import time
-import random
 import json
+import random
+import time
+from os import makedirs
 from string import Template
 from sys import argv
+
+import requests
 
 class VKAPI(object):
     def __init__(self, access_token, api_version="5.73"):
@@ -56,6 +58,24 @@ def validate_credentials():
     else:
         print("[FAILED]")
         exit()
+
+def update_html_output(liked_posts_urls, output_filename):
+    with open("template.html", "r") as f:
+        html_template = Template(f.read())
+    html_content = ""
+    for link in liked_posts_urls:
+        if link == "":
+            html_content += '<div class="divider"></div>'
+        else:
+            name = link.replace("https://vk.com/wall-", "")
+            html_content += '<a href="{}" target="_blank" class="link">{}</a>'.format(link, name)
+    output_html = html_template.substitute({
+        "title": user_first_name+" "+user_last_name,
+        "content": html_content
+    })
+    with open(output_filename, "w") as f:
+        f.write(output_html)
+
 try:
     global access_token
     print("Trying to get access token from 'access_token.txt'... ", end="")
@@ -101,13 +121,24 @@ except IndexError:
     except KeyboardInterrupt:
         exit()
 
+global user_data, user_id, user_first_name, user_last_name
 user_data = vk.call("users.get", user_ids=user_link)[0]
 user_id = user_data["id"]
 user_first_name = user_data["first_name"]
 user_last_name = user_data["last_name"]
 print("Target:", user_first_name, user_last_name, "(vk.com/id"+str(user_id)+")")
 
-user_subscriptions_filename = user_link+"-"+str(user_id)+"-subscriptions.txt"
+dir_prefix = "data/"
+try:
+    makedirs(dir_prefix)
+except FileExistsError:
+    pass
+timestamp = str(int(time.time()))
+global liked_urls_filename, html_output_filename, user_subscriptions_filename
+liked_urls_filename = dir_prefix+"{}_{}_id{}-{}-liked.txt".format(user_first_name, user_last_name, user_id, timestamp)
+html_output_filename = dir_prefix+"{}_{}_id{}-{}-liked.html".format(user_first_name, user_last_name, user_id, timestamp)
+user_subscriptions_filename = dir_prefix+"{}_{}_id{}-subscriptions.json".format(user_first_name, user_last_name, user_id)
+
 try:
     with open(user_subscriptions_filename, "r") as f:
         try:
@@ -138,7 +169,7 @@ if not subscriptions_loaded_from_cache:
         print("[OK]")
 
 try:
-    amount_of_posts_to_check = argv[2]
+    amount_of_posts_to_check = int(argv[2])
 except IndexError:
     try:
         amount_of_posts_to_check = input("> Amount of posts on every wall to check (200 recommended): ")
@@ -149,7 +180,7 @@ except IndexError:
     else:
         amount_of_posts_to_check = int(amount_of_posts_to_check)
 
-# preload template to save time
+# preload code templates to save time
 with open("find-liked-posts.js", "r") as f:
     code_template = Template(f.read())
 
@@ -159,7 +190,6 @@ liked_posts_urls = []
 checked_public_pages = 0
 total_public_pages = len(user_subscriptions)
 
-liked_urls_filename = user_link+"-"+str(user_id)+"-liked.txt"
 # check every public/group
 for public_page in user_subscriptions:
     # 24 is maximal amount of posts to check via 1 request
@@ -185,11 +215,14 @@ for public_page in user_subscriptions:
         random_delay()
     # add visual delimeter
     if found_something:
+        liked_posts_urls.append("")
         with open(liked_urls_filename, "a") as f:
             f.write("\n")
     # update stats
     checked_public_pages += 1
     update_status_line()
-
+    update_html_output(liked_posts_urls, html_output_filename)
+    
 print()
 print("All found links saved to "+liked_urls_filename)
+print("Pretty HTML output stored in "+html_output_filename)

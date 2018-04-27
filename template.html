@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>$title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: monospace;
+            font-size: 14pt;
+            color: #C4D1DE;
+            background-color: #282B2F;
+        }
+        #content {
+            min-width: 5em;
+            max-width: 45em;
+            margin: auto;
+            background-color: #373B3E;
+            padding: 1em;
+            padding-bottom: 2em;
+            border-radius: 2px;
+            text-align: center;
+        }
+        a {
+            color: #C4D1DE;
+            text-decoration: none;
+        }
+        a:visited {
+            color: #676d74;
+        }
+        a:hover {
+            font-weight: bold;
+            color: #676d74;
+        }
+        a:active {
+            font-weight: bold;
+            color: #676d74;
+        }
+        .divider {
+            padding-top: 1em;
+        }
+        h1 {
+            font-size: 16pt;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            margin: 0.5em auto 0.5em auto;
+        }
+        .link {
+            display: inline-flex;
+            text-align: center;
+            margin: 0.25em 0.5em 0.25em 0.5em;
+        }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <h1>$title</h1>
+        $content
+    </div>
+    <script>
+    setTimeout(function(){ window.location.reload(1); }, 5000);
+    </script>
+</body>
+</html>
