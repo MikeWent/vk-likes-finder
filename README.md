@@ -4,16 +4,22 @@ Find posts on vk.com which are marked as liked by some target user.
 
 ## Installation
 
-First, install [Python 3](https://www.python.org/downloads/) and [pip](https://pip.pypa.io/en/stable/installing/):
+You need [Python 3](https://www.python.org/downloads/) and [Python Requests module](http://python-requests.com):
 
-- Ubuntu/Debian: `sudo apt install python3 python3-pip`
-- Arch Linux: `sudo pacman -S python python-pip`
+## Via package manager on Linux 
 
-Then run pip to install script requirements: `pip3 install --user -r requirements.txt`
+- Ubuntu/Debian: `sudo apt install python3 python3-requests`
+- Arch Linux: `sudo pacman -S python python-requests`
+
+### Via [pip](https://pip.pypa.io/en/stable/installing/)
+
+**Don't** do this if you have already installed `requests` via package manager on Linux.
+
+`pip3 install --user --upgrade requests`
 
 ## Usage
 
-Simply run the script and follow instructions.
+Simply run the script and follow instructions. Script works with personal token access, so you need to provide working credentials (or access token).
 
 ## License
 
