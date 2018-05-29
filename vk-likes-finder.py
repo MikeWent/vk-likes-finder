@@ -40,10 +40,10 @@ def random_delay():
         exit()
 
 def update_status_line():
-    status_line = "Found liked posts: {} | Progress: {}/{}".format(
-        len(liked_posts_urls),
+    status_line = "Progress: {}/{} walls checked, {} liked posts found".format(
         checked_public_pages,
-        total_public_pages
+        total_public_pages,
+        len(liked_posts_urls)
     )
     print(status_line, end="\r")
 
@@ -112,6 +112,7 @@ except FileNotFoundError:
         with open("access_token.txt", "w") as f:
             f.write(access_token)
         print("[OK]")
+print("---")
 
 try:
     user_link = argv[1]
@@ -126,18 +127,28 @@ user_data = vk.call("users.get", user_ids=user_link)[0]
 user_id = user_data["id"]
 user_first_name = user_data["first_name"]
 user_last_name = user_data["last_name"]
-print("Target:", user_first_name, user_last_name, "(vk.com/id"+str(user_id)+")")
+print("{} {} (vk.com/id{})".format(user_first_name, user_last_name, user_id))
+
+try:
+    amount_of_posts_to_check = int(argv[2])
+except IndexError:
+    try:
+        amount_of_posts_to_check = input("> Amount of posts on every wall to check (200 recommended): ")
+    except KeyboardInterrupt:
+        exit()
+    if amount_of_posts_to_check == "":
+        amount_of_posts_to_check = 200
+    else:
+        amount_of_posts_to_check = int(amount_of_posts_to_check)
 
 dir_prefix = "data/"
-try:
-    makedirs(dir_prefix)
-except FileExistsError:
-    pass
+makedirs(dir_prefix, exist_ok=True)
+makedirs("cache/", exist_ok=True)
 timestamp = str(int(time.time()))
 global liked_urls_filename, html_output_filename, user_subscriptions_filename
 liked_urls_filename = dir_prefix+"{}_{}_id{}-{}-liked.txt".format(user_first_name, user_last_name, user_id, timestamp)
 html_output_filename = dir_prefix+"{}_{}_id{}-{}-liked.html".format(user_first_name, user_last_name, user_id, timestamp)
-user_subscriptions_filename = dir_prefix+"{}_{}_id{}-subscriptions.json".format(user_first_name, user_last_name, user_id)
+user_subscriptions_filename = "cache/{}_{}_id{}-subscriptions.json".format(user_first_name, user_last_name, user_id)
 
 try:
     with open(user_subscriptions_filename, "r") as f:
@@ -167,19 +178,11 @@ if not subscriptions_loaded_from_cache:
     with open(user_subscriptions_filename, "w") as f:
         json.dump(user_subscriptions, f, indent=4)
         print("[OK]")
+print("---")
+print("Found posts: {}".format(liked_urls_filename))
+print("HTML table: {}".format(html_output_filename))
 
-try:
-    amount_of_posts_to_check = int(argv[2])
-except IndexError:
-    try:
-        amount_of_posts_to_check = input("> Amount of posts on every wall to check (200 recommended): ")
-    except KeyboardInterrupt:
-        exit()
-    if amount_of_posts_to_check == "":
-        amount_of_posts_to_check = 200
-    else:
-        amount_of_posts_to_check = int(amount_of_posts_to_check)
-
+print("Loading... ", end="\r")
 # preload code templates to save time
 with open("find-liked-posts.js", "r") as f:
     code_template = Template(f.read())
@@ -190,39 +193,41 @@ liked_posts_urls = []
 checked_public_pages = 0
 total_public_pages = len(user_subscriptions)
 
-# check every public/group
-for public_page in user_subscriptions:
-    # 24 is maximal amount of posts to check via 1 request
-    times_to_execute = int(amount_of_posts_to_check/24)+1
-    # marker
-    found_something = False
-    for i in range(1, times_to_execute+1):
-        posts_offset = 24 * i
-        # modify template
-        code_to_execute = code_template.substitute({
-            "wall_id": -public_page["id"],
-            "user_id": user_id,
-            "posts_offset": posts_offset
-        })
-        response = vk.call("execute", code=code_to_execute)
-        for url in response:
-            liked_posts_urls.append(url)
+try:
+    # check every public/group
+    for public_page in user_subscriptions:
+        # 24 is maximal amount of posts to check via 1 request
+        times_to_execute = int(amount_of_posts_to_check/24)+1
+        # marker
+        found_something = False
+        for i in range(1, times_to_execute+1):
+            posts_offset = 24 * i
+            # modify template
+            code_to_execute = code_template.substitute({
+                "wall_id": -public_page["id"],
+                "user_id": user_id,
+                "posts_offset": posts_offset
+            })
+            response = vk.call("execute", code=code_to_execute)
+            for url in response:
+                liked_posts_urls.append(url)
+                with open(liked_urls_filename, "a") as f:
+                    f.write(url+"\n")
+            if len(response) > 0:
+                found_something = True
+                update_status_line()
+            random_delay()
+        # add visual delimeter
+        if found_something:
+            liked_posts_urls.append("")
             with open(liked_urls_filename, "a") as f:
-                f.write(url+"\n")
-        if len(response) > 0:
-            found_something = True
-            update_status_line()
-        random_delay()
-    # add visual delimeter
-    if found_something:
-        liked_posts_urls.append("")
-        with open(liked_urls_filename, "a") as f:
-            f.write("\n")
-    # update stats
-    checked_public_pages += 1
-    update_status_line()
-    update_html_output(liked_posts_urls, html_output_filename)
-    
-print()
-print("All found links saved to "+liked_urls_filename)
-print("Pretty HTML output stored in "+html_output_filename)
+                f.write("\n")
+        # update stats
+        checked_public_pages += 1
+        update_html_output(liked_posts_urls, html_output_filename)
+        update_status_line()
+    print("\n---")
+    print("Done!")
+except KeyboardInterrupt:
+    print(" "*50)
+    exit(1)
