@@ -105,3 +105,4 @@ access_token.txt
 *-subscriptions.txt
 *-liked.txt
 data/
+cache/
