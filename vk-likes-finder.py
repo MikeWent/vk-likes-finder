@@ -9,7 +9,7 @@ from sys import argv
 import requests
 
 class VKAPI(object):
-    def __init__(self, access_token, api_version="5.73"):
+    def __init__(self, access_token, api_version="5.80"):
         self.api_url = "https://api.vk.com/method/{}"
         self.required_params = {
             "access_token": access_token,
