@@ -60,7 +60,7 @@ def validate_credentials():
         exit()
 
 def update_html_output(liked_posts_urls, output_filename):
-    with open("template.html", "r") as f:
+    with open("etc/template.html", "r") as f:
         html_template = Template(f.read())
     html_content = ""
     for link in liked_posts_urls:
@@ -164,7 +164,7 @@ except FileNotFoundError:
 if not subscriptions_loaded_from_cache:
     user_subscriptions = []
     print("Fetching user subscriptions... ", end="")
-    with open("fetch-subscriptions.js", "r") as f:
+    with open("etc/fetch-subscriptions.js", "r") as f:
         code_template = Template(f.read())
     code_to_execute = code_template.substitute({"user_id": user_id})
     user_subscriptions = vk.call("execute", code=code_to_execute)
@@ -184,7 +184,7 @@ print("HTML table: {}".format(html_output_filename))
 
 print("Loading... ", end="\r")
 # preload code templates to save time
-with open("find-liked-posts.js", "r") as f:
+with open("etc/find-liked-posts.js", "r") as f:
     code_template = Template(f.read())
 
 # stats
