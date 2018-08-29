@@ -68,7 +68,7 @@ def update_html_output(liked_posts_urls, output_filename):
             html_content += '<div class="divider"></div>'
         else:
             name = link.replace("https://vk.com/wall-", "")
-            html_content += '<a href="{}" target="_blank" class="link">{}</a>'.format(link, name)
+            html_content += '<a href="{}" target="_blank" class="link">{}</a>\n'.format(link, name)
     output_html = html_template.substitute({
         "title": user_first_name+" "+user_last_name,
         "content": html_content
@@ -141,7 +141,7 @@ except IndexError:
     else:
         amount_of_posts_to_check = int(amount_of_posts_to_check)
 
-dir_prefix = "data/"
+dir_prefix = "posts/"
 makedirs(dir_prefix, exist_ok=True)
 makedirs("cache/", exist_ok=True)
 timestamp = str(int(time.time()))
