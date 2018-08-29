@@ -6,38 +6,8 @@ from os import makedirs
 from string import Template
 from sys import argv
 
-import requests
+from helpers import VKAPI, VKAPIError, delay, token_is_valid
 
-class VKAPI(object):
-    def __init__(self, access_token, api_version="5.80"):
-        self.api_url = "https://api.vk.com/method/{}"
-        self.required_params = {
-            "access_token": access_token,
-            "v": api_version
-        }
-
-    def call(self, method, **request_params):
-        if request_params:
-            request_params.update(self.required_params)
-        else:
-            request_params = self.required_params
-        r = requests.post(self.api_url.format(method), request_params)
-        json_from_server = r.json()
-        try:
-            return json_from_server["response"]
-        except KeyError:
-            print("\n=== ERROR ===")
-            print("METHOD:", method)
-            print("PARAMS:", str(request_params))
-            print("RESPONSE:", r.text)
-            print()
-            return False
-
-def random_delay():
-    try:
-        time.sleep(random.randint(3, 5)/10)
-    except KeyboardInterrupt:
-        exit()
 
 def update_status_line():
     status_line = "Progress: {}/{} walls checked, {} liked posts found".format(
@@ -47,17 +17,6 @@ def update_status_line():
     )
     print(status_line, end="\r")
 
-def validate_credentials():
-    global vk
-    print("Trying to auth with access token... ", end="")
-    vk = VKAPI(access_token)
-    test_call = vk.call("account.getProfileInfo")
-    if test_call:
-        print("[OK]")
-        return True
-    else:
-        print("[FAILED]")
-        exit()
 
 def update_html_output(liked_posts_urls, output_filename):
     with open("etc/template.html", "r") as f:
@@ -76,43 +35,21 @@ def update_html_output(liked_posts_urls, output_filename):
     with open(output_filename, "w") as f:
         f.write(output_html)
 
-try:
-    global access_token
-    print("Trying to get access token from 'access_token.txt'... ", end="")
-    with open("access_token.txt", "r") as f:
-        access_token = f.read()
-        access_token = access_token.rstrip()
-    print("[OK]")
-    random_delay()
-    validate_credentials()
-except FileNotFoundError:
-    print("[FAILED]")
-    print("Using primary auth method to get access token")
-    print("Enter your credentials below to continue (doesn't work with 2FA enabled)")
-    login = input("> Login (email/phone): ")
-    password = input("> Password: ")
-    print("Trying to get token with provided credentials... ", end="")
-    # VK Android app
-    auth_test = requests.get("https://oauth.vk.com/token", params={
-        "grant_type": "password",
-        "scope": "all",
-        "client_id": 2274003,
-        "client_secret": "hHbZxrka2uZ6jB1inYsH",
-        "username": login,
-        "password": password
-    })
+success_auth = False
+while not success_auth:
     try:
-        access_token = auth_test.json()["access_token"]
-        print("[OK]")
-    except:
-        print("[FAILED]")
-        exit()
-    if validate_credentials():
-        print("Saving access token to 'access_token.txt'... ", end="")
-        with open("access_token.txt", "w") as f:
-            f.write(access_token)
-        print("[OK]")
-print("---")
+        with open("access_token.txt", "r") as f:
+            access_token = f.read()
+            access_token = access_token.rstrip()
+        if token_is_valid(access_token):
+            success_auth = True
+            vk = VKAPI(access_token)
+            break
+    except FileNotFoundError:
+        pass
+    import auth
+    print("---")
+
 
 try:
     user_link = argv[1]
@@ -123,7 +60,7 @@ except IndexError:
         exit()
 
 global user_data, user_id, user_first_name, user_last_name
-user_data = vk.call("users.get", user_ids=user_link)[0]
+user_data = vk.method("users.get", user_ids=user_link)[0]
 user_id = user_data["id"]
 user_first_name = user_data["first_name"]
 user_last_name = user_data["last_name"]
@@ -167,7 +104,7 @@ if not subscriptions_loaded_from_cache:
     with open("etc/fetch-subscriptions.js", "r") as f:
         code_template = Template(f.read())
     code_to_execute = code_template.substitute({"user_id": user_id})
-    user_subscriptions = vk.call("execute", code=code_to_execute)
+    user_subscriptions = vk.method("execute", code=code_to_execute)
     if user_subscriptions:
         print("[OK]")
     else:
@@ -208,7 +145,7 @@ try:
                 "user_id": user_id,
                 "posts_offset": posts_offset
             })
-            response = vk.call("execute", code=code_to_execute)
+            response = vk.method("execute", code=code_to_execute)
             for url in response:
                 liked_posts_urls.append(url)
                 with open(liked_urls_filename, "a") as f:
@@ -216,7 +153,7 @@ try:
             if len(response) > 0:
                 found_something = True
                 update_status_line()
-            random_delay()
+            delay()
         # add visual delimeter
         if found_something:
             liked_posts_urls.append("")
