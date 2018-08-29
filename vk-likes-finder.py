@@ -24,7 +24,7 @@ def update_html_output(liked_posts_urls, output_filename):
     html_content = ""
     for link in liked_posts_urls:
         if link == "":
-            html_content += '<div class="divider"></div>'
+            html_content += '<div class="divider"></div>\n'
         else:
             name = link.replace("https://vk.com/wall-", "")
             html_content += '<a href="{}" target="_blank" class="link">{}</a>\n'.format(link, name)
