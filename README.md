@@ -2,7 +2,15 @@
 
 Find posts on vk.com which are marked as liked by some target user.
 
-## Installation
+## Downloading
+
+```bash
+git clone https://github.com/MikeWent/vk-likes-finder.git
+cd vk-likes-finder
+git submodule update --recursive
+```
+
+## Requirements installation
 
 You need [Python 3](https://www.python.org/downloads/) and [Python Requests module](http://python-requests.com):
 
