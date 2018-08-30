@@ -5,8 +5,15 @@ Find posts on vk.com which are marked as liked by some target user.
 ## Downloading
 
 ```bash
-git clone https://github.com/MikeWent/vk-likes-finder.git
+git clone --recursive https://github.com/MikeWent/vk-likes-finder.git
 cd vk-likes-finder
+```
+
+## Updating
+
+```bash
+cd vk-likes-finder
+git pull
 git submodule update --recursive
 ```
 
