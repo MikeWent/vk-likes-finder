@@ -1,0 +1,3 @@
+[submodule "auth"]
+	path = auth
+	url = ../vk-auth
