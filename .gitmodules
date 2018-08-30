@@ -1,3 +1,4 @@
 [submodule "auth"]
 	path = auth
-	url = ../vk-auth
+	url = https://github.com/MikeWent/vk-auth.git
+
