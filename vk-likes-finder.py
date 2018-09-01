@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
 import json
-import random
-import time
 from os import makedirs
+from random import randint
 from string import Template
 from sys import argv
+from time import sleep, time
 
-from helpers import VKAPI, VKAPIError, delay, token_is_valid
+import vk_api
+
+
+def delay():
+    """Sleep 0.3-0.4 seconds"""
+    try:
+        sleep(randint(3, 4) / 10)
+    except KeyboardInterrupt:
+        exit()
 
 
 def update_status_line():
+    """Print pretty progress line"""
     status_line = "Progress: {}/{} walls checked, {} liked posts found".format(
         checked_public_pages,
         total_public_pages,
@@ -19,6 +28,7 @@ def update_status_line():
 
 
 def update_html_output(liked_posts_urls, output_filename):
+    """Update HTML file with list of liked posts"""
     with open("etc/template.html", "r") as f:
         html_template = Template(f.read())
     html_content = ""
@@ -35,16 +45,20 @@ def update_html_output(liked_posts_urls, output_filename):
     with open(output_filename, "w") as f:
         f.write(output_html)
 
+
 success_auth = False
 while not success_auth:
     try:
         with open("access_token.txt", "r") as f:
-            access_token = f.read()
-            access_token = access_token.rstrip()
-        if token_is_valid(access_token):
-            success_auth = True
-            vk = VKAPI(access_token)
-            break
+            access_token = f.read().rstrip()
+        vk_session = vk_api.VkApi(token=access_token)
+        try:
+            vk = vk_session.get_api()
+            if vk.users.get():
+                success_auth = True
+                break
+        except vk_api.VkApiError:
+            pass
     except FileNotFoundError:
         pass
     import auth
@@ -60,7 +74,7 @@ except IndexError:
         exit()
 
 global user_data, user_id, user_first_name, user_last_name
-user_data = vk.method("users.get", user_ids=user_link)[0]
+user_data = vk.users.get(user_ids=user_link)[0]
 user_id = user_data["id"]
 user_first_name = user_data["first_name"]
 user_last_name = user_data["last_name"]
@@ -81,7 +95,7 @@ except IndexError:
 dir_prefix = "posts/"
 makedirs(dir_prefix, exist_ok=True)
 makedirs("cache/", exist_ok=True)
-timestamp = str(int(time.time()))
+timestamp = str(int(time()))
 global liked_urls_filename, html_output_filename, user_subscriptions_filename
 liked_urls_filename = dir_prefix+"{}_{}_id{}-{}-liked.txt".format(user_first_name, user_last_name, user_id, timestamp)
 html_output_filename = dir_prefix+"{}_{}_id{}-{}-liked.html".format(user_first_name, user_last_name, user_id, timestamp)
@@ -104,7 +118,7 @@ if not subscriptions_loaded_from_cache:
     with open("etc/fetch-subscriptions.js", "r") as f:
         code_template = Template(f.read())
     code_to_execute = code_template.substitute({"user_id": user_id})
-    user_subscriptions = vk.method("execute", code=code_to_execute)
+    user_subscriptions = vk.execute(code=code_to_execute)
     if user_subscriptions:
         print("[OK]")
     else:
@@ -145,7 +159,7 @@ try:
                 "user_id": user_id,
                 "posts_offset": posts_offset
             })
-            response = vk.method("execute", code=code_to_execute)
+            response = vk.execute(code=code_to_execute)
             for url in response:
                 liked_posts_urls.append(url)
                 with open(liked_urls_filename, "a") as f:
