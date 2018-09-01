@@ -64,7 +64,6 @@ while not success_auth:
     import auth
     print("---")
 
-
 try:
     user_link = argv[1]
 except IndexError:
