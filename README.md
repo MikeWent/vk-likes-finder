@@ -2,7 +2,7 @@
 
 Find posts on vk.com which are marked as liked by some target user.
 
-## Downloading & installation
+## Downloading & requirements installation
 
 ```bash
 git clone --recursive https://github.com/MikeWent/vk-likes-finder.git
@@ -16,6 +16,7 @@ pip3 install --user --upgrade -r requirements.txt
 cd vk-likes-finder
 git pull
 git submodule update --recursive
+pip3 install --user --upgrade -r requirements.t
 ```
 
 ## Usage
