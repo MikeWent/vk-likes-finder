@@ -8,6 +8,7 @@ from time import sleep, time
 
 import vk_api
 
+import auth
 
 def delay():
     """Sleep 0.3-0.4 seconds"""
@@ -46,23 +47,8 @@ def update_html_output(liked_posts_urls, output_filename):
         f.write(output_html)
 
 
-success_auth = False
-while not success_auth:
-    try:
-        with open("access_token.txt", "r") as f:
-            access_token = f.read().rstrip()
-        vk_session = vk_api.VkApi(token=access_token)
-        try:
-            vk = vk_session.get_api()
-            if vk.users.get():
-                success_auth = True
-                break
-        except vk_api.VkApiError:
-            pass
-    except FileNotFoundError:
-        pass
-    import auth
-    print("---")
+vk_session = vk_api.VkApi(token=auth.ACCESS_TOKEN)
+vk = vk_session.get_api()
 
 try:
     user_link = argv[1]
